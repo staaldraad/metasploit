@@ -60,7 +60,6 @@ def get_domain_hosts()
         servertype = 3 #workstations and servers
 
         #NetServerEnum(servername,level,bufptr,prefmaxlen,entriesread,totalentries,servertype,domain,resume_handle)
-        #NetServerEnum(nil,100,4,buffersize,4,4,servertype,nil,nil)
         result = client.railgun.netapi32.NetServerEnum(nil,100,4,buffersize,4,4,servertype,nil,nil)
         print_status("#{result['return']}")
         if result['return'] == 5
@@ -87,7 +86,6 @@ def get_domain_hosts()
             return nil
         elsif result['return'] != 234
             print_status("Missed this one.. Recieved error code: #{result['return']}")
-            #raise Script::Completed
             return nil
         end
 
@@ -109,7 +107,7 @@ def get_domain_hosts()
                          #should probably change this to process hosts as they are returned
     end
 
-    def read_server_struct(startmem,count) #figure this shit out
+    def read_server_struct(startmem,count) 
         base = 0
         netservers = []
         print_status("parsing results")

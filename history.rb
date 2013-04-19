@@ -127,9 +127,4 @@ class Plugin::History < Msf::Plugin
 		"Adds history command to msfconsole.\nUsage: history [num|!num[-num]]"
 	end
 
-protected
-
-	
-end
-
 end

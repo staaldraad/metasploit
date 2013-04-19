@@ -1,7 +1,6 @@
 require 'msf/core'
 require 'rex'
 
-# Multi platform requiere
 require 'msf/core/post/common'
 require 'msf/core/post/file'
 
@@ -33,7 +32,6 @@ class Metasploit3 < Msf::Post
                 ], self.class)
     end
 
-    # Run Method for when run command is issued
     def run
         
         if datastore['USER']
@@ -137,14 +135,14 @@ class Metasploit3 < Msf::Post
             return nil
         else
             if result['return'] != 234
-                #print_status("Missed this one.. Recieved error code: #{result['return']}")
+                if @verbose == true
+                    print_status("Unaccounted for error code: #{result['return']}")
+                end
                 return nil
             end
         end
 
-        #print_status("Finding the right buffersize...")
         while result['return'] == 234
-            #print_status("Tested #{buffersize}, got #{result['entriesread']} of #{result['totalentries']}")
             buffersize = buffersize + 500
             result = client.railgun.netapi32.NetSessionEnum(hostname,nil,username,10,4,buffersize,4,4,nil)
         end
@@ -152,7 +150,6 @@ class Metasploit3 < Msf::Post
         netsessions = read_session_struct(result['bufptr'],result['totalentries'])
         if netsessions.size > 0
             netsessions.each do |x|
-                #addr = gethost(hostname)
                 print_good("#{username} is logged in at #{hostname}  and has been idle for #{x[:idletime]} seconds")
                 @sessions = @sessions + 1
             end
@@ -160,7 +157,7 @@ class Metasploit3 < Msf::Post
     end
 
     def get_domain_hosts()
-        #use railgun and NetServerEnum
+
         client.railgun.add_function('netapi32', 'NetServerEnum', 'DWORD',[
         ['PWCHAR','servername','in'],
         ['DWORD','level','in'],
@@ -178,7 +175,6 @@ class Metasploit3 < Msf::Post
         servertype = 3 #workstations and servers
 
         #NetServerEnum(servername,level,bufptr,prefmaxlen,entriesread,totalentries,servertype,domain,resume_handle)
-        #NetServerEnum(nil,100,4,buffersize,4,4,servertype,nil,nil)
         result = client.railgun.netapi32.NetServerEnum(nil,100,4,buffersize,4,4,servertype,nil,nil)
         
         if result['return'] == 5
@@ -210,7 +206,9 @@ class Metasploit3 < Msf::Post
             return nil
         else
             if result['return'] != 234
-                #print_status("Missed this one.. Recieved error code: #{result['return']}")
+                if @verbose == true
+                    print_status("Unaccounted for error code: #{result['return']}")
+                end
                 return nil
             end
         end
@@ -218,7 +216,6 @@ class Metasploit3 < Msf::Post
         #figure out right buffersize
         while result['return'] == 234
             buffersize = buffersize + 500
-            #print_good("Buffer++")
             result = client.railgun.netapi32.NetServerEnum(nil,100,4,buffersize,4,4,servertype,nil,nil)
         end
 
@@ -227,7 +224,6 @@ class Metasploit3 < Msf::Post
         netservers = read_server_struct(result['bufptr'],result['totalentries'])
         if netservers.size > 0
             netservers.each do |x|
-                #print_good("server #{x}")
                 hostnames << x[:name]
             end
         end
