@@ -33,7 +33,7 @@ class Plugin::History < Msf::Plugin
 			num_display = 10
 			if args.length > 0
 				arg0 = args[0]
-				if arg0[0] == '!'
+				if arg0[0] == '!' or arg0[0] == 33
 					multi_cmd = arg0.index('-')
 					if multi_cmd != nil and multi_cmd > 0
 						r_start = Integer(arg0[1,multi_cmd-1])
