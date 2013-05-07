@@ -33,10 +33,9 @@ class Plugin::History < Msf::Plugin
 			num_display = 10
 			if args.length > 0
 				arg0 = args[0]
-				
-				if arg0[0] == 33
+				if arg0[0] == '!'
 					multi_cmd = arg0.index('-')
-					if multi_cmd > 0
+					if multi_cmd != nil and multi_cmd > 0
 						r_start = Integer(arg0[1,multi_cmd-1])
 						r_end = Integer(arg0[multi_cmd+1,arg0.length-1])
 						print_status("Running multiple commands")
@@ -127,4 +126,5 @@ class Plugin::History < Msf::Plugin
 		"Adds history command to msfconsole.\nUsage: history [num|!num[-num]]"
 	end
 
+end
 end
