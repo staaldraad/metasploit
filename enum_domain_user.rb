@@ -27,18 +27,31 @@ class Metasploit3 < Msf::Post
             ))
         register_options(
                 [
-                    OptString.new('USER',    [true, 'Target User for NetSessionEnum', '']),
+                    OptString.new('USER',    [true, 'Target User for NetSessionEnum', 'nil']),
+                    OptString.new('HOST',    [false, 'Display failed logins/missing hosts', '']),
                     OptString.new('VERBOSE',    [false, 'Display failed logins/missing hosts', 'false']),
                 ], self.class)
     end
 
     def run
-        
-        if datastore['USER']
-            @user = datastore['USER']
+        @sessions = 0
+        @verbose = false
+
+        if datastore['HOST'] != ''
+            if datastore['USER'] == 'nil'
+                print_status("Attempting to get all logged in users...")
+                getSessions(datastore['HOST'],nil)
+            else
+                getSessions(datastore['HOST'],datastore['USER'])
+            end        
+        elsif datastore['USER']
+            if datastore['USER'] == 'nil'
+                @user = nil
+            else
+                @user = datastore['USER']
+            end
             domain = getdomain()
-            @sessions = 0
-            @verbose = false
+            
             if datastore['VERBOSE'] == 'true'
                 print_status ("Verbose output enabled")
                 @verbose = true
@@ -54,15 +67,15 @@ class Metasploit3 < Msf::Post
                 if hostname_list != nil
                     len = hostname_list.length
                     print_status ("#{len} hosts found")
-                    print_status ("Searching for sessions, user: #{@user}")
+                    #print_status ("Searching for sessions, user: #{@user}")
 
-                    hostname_list.each do |x|
-                        getSessions(x,@user)
-                        count = count + 1
-                        if count%10 == 0
-                            print_status ("#{count} of #{len} hosts checked")
-                        end
-                    end
+                    #hostname_list.each do |x|
+                    #    getSessions(x,@user)
+                    #    count = count + 1
+                    #    if count%10 == 0
+                    #        print_status ("#{count} of #{len} hosts checked")
+                    #    end
+                    #end
                 end
 
                 if @sessions == 0
@@ -109,7 +122,6 @@ class Metasploit3 < Msf::Post
         ['PDWORD','resume_handle','inout']
         ])
 
-
         buffersize = 500
         result = client.railgun.netapi32.NetSessionEnum(hostname,nil,username,10,4,buffersize,4,4,nil)
         if result['return'] == 5
@@ -144,14 +156,20 @@ class Metasploit3 < Msf::Post
 
         while result['return'] == 234
             buffersize = buffersize + 500
+            print_status("Buff me")
             result = client.railgun.netapi32.NetSessionEnum(hostname,nil,username,10,4,buffersize,4,4,nil)
         end
 
         netsessions = read_session_struct(result['bufptr'],result['totalentries'])
         if netsessions.size > 0
             netsessions.each do |x|
-                print_good("#{username} is logged in at #{hostname}  and has been idle for #{x[:idletime]} seconds")
-                @sessions = @sessions + 1
+                if username != nil
+                    print_good("#{username} is logged in at #{hostname}  and has been idle for #{x[:idletime]} seconds")
+                    @sessions = @sessions + 1
+                else
+                    print_good("#{x[:username]} logged in at #{hostname} and has been idle for #{x[:idletime]} seconds")
+                end
+                
             end
         end
     end
@@ -167,9 +185,8 @@ class Metasploit3 < Msf::Post
         ['PDWORD','totalentries','out'],
         ['DWORD','servertype','in'],
         ['PWCHAR','domain','in'],
-        ['PWCHAR','resume_handle','inout']
+        ['PDWORD','resume_handle','inout']
         ])
-
 
         buffersize = 500
         servertype = 3 #workstations and servers
@@ -215,20 +232,22 @@ class Metasploit3 < Msf::Post
 
         #figure out right buffersize
         while result['return'] == 234
-            buffersize = buffersize + 500
+            buffersize = buffersize + 1000
             result = client.railgun.netapi32.NetServerEnum(nil,100,4,buffersize,4,4,servertype,nil,nil)
         end
 
         hostnames = []
         print_good ("Got a list of hosts... Parsing... this could take a while...")
         netservers = read_server_struct(result['bufptr'],result['totalentries'])
-        if netservers.size > 0
-            netservers.each do |x|
-                hostnames << x[:name]
-            end
-        end
-        return hostnames #for now we are just returning a list of hostnames.
+        #if netservers.size > 0
+        #    netservers.each do |x|
+        #        hostnames << x[:name]
+        #    end
+        #end
+        #return hostnames #for now we are just returning a list of hostnames.
                          #should probably change this to process hosts as they are returned
+        return netservers
+
     end
 
     def read_server_struct(startmem,count) 
@@ -243,6 +262,7 @@ class Metasploit3 < Msf::Post
             x[:name] = client.railgun.memread(nameptr,255).split("\0\0")[0].split("\0").join
             base = base + 8
             netservers << x
+            getSessions(x[:name],@user)
         }
         return netservers
     end
