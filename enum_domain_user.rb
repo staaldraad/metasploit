@@ -1,9 +1,7 @@
 require 'msf/core'
 require 'rex'
-
 require 'msf/core/post/common'
 require 'msf/core/post/file'
-
 require 'msf/core/post/windows/registry'
 
 class Metasploit3 < Msf::Post
@@ -36,6 +34,7 @@ class Metasploit3 < Msf::Post
     def run
         @sessions = 0
         @verbose = false
+        @retrieved = ''
 
         if datastore['HOST'] != ''
             if datastore['USER'] == 'nil'
@@ -67,15 +66,6 @@ class Metasploit3 < Msf::Post
                 if hostname_list != nil
                     len = hostname_list.length
                     print_status ("#{len} hosts found")
-                    #print_status ("Searching for sessions, user: #{@user}")
-
-                    #hostname_list.each do |x|
-                    #    getSessions(x,@user)
-                    #    count = count + 1
-                    #    if count%10 == 0
-                    #        print_status ("#{count} of #{len} hosts checked")
-                    #    end
-                    #end
                 end
 
                 if @sessions == 0
@@ -239,15 +229,8 @@ class Metasploit3 < Msf::Post
         hostnames = []
         print_good ("Got a list of hosts... Parsing... this could take a while...")
         netservers = read_server_struct(result['bufptr'],result['totalentries'])
-        #if netservers.size > 0
-        #    netservers.each do |x|
-        #        hostnames << x[:name]
-        #    end
-        #end
-        #return hostnames #for now we are just returning a list of hostnames.
-                         #should probably change this to process hosts as they are returned
-        return netservers
 
+        return netservers
     end
 
     def read_server_struct(startmem,count) 
